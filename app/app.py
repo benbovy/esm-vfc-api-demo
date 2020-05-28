@@ -44,9 +44,11 @@ def get_demo_dataset_html_repr():
 def get_demo_dataset_field_names():
     """Returns variable names in demo dataset."""
 
-    fieldnames = requests.get(demo_dataset_server_url + "/keys").json()
+    # TODO: fix this upstream
+    dataset = xr.open_zarr(demo_dataset_http_map, consolidated=True)
+    fieldnames = dataset.data_vars.keys()
 
-    return {"fieldnames": fieldnames}
+    return {"fieldnames": list(fieldnames)}
 
 
 @app.route('/api/v1.0/datasets/demo/info')
