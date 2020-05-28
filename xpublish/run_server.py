@@ -4,9 +4,10 @@
 import xarray as xr
 import xpublish
 
+
 if __name__ == "__main__":
 
     ds = xr.tutorial.open_dataset("air_temperature")
     print(ds)
 
-    ds.rest.serve(host="127.0.0.1", port=5000)
+    ds.rest.serve(host="0.0.0.0", port=9000)

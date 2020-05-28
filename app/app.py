@@ -16,7 +16,7 @@ from utils import extract_field_along_tracks
 app = Flask(__name__)
 
 # url and port of xpublish server running for the demo dataset
-demo_dataset_server_url = "http://127.0.0.1:5000"
+demo_dataset_server_url = "http://xpublish:9000"
 
 # http map of demo dataset
 fs = HTTPFileSystem()
@@ -46,7 +46,7 @@ def get_demo_dataset_info():
     return {"info": info}
 
 
-@app.route("/api/v1.0/datasets/demo/extract_tracks/", methods=["POST"])
+@app.route("/api/v1.0/datasets/demo/extract_tracks", methods=["POST"])
 def extract_demo_data_along_tracks():
     """Extract data along given ship tracks."""
 
