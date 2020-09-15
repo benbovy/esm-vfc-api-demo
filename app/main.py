@@ -6,7 +6,7 @@
 #
 # $ uvicorn app.main:app --reload
 #
-from typing import List, Union
+from typing import List, Optional, Union
 
 import xarray as xr
 from fastapi import APIRouter, Depends
@@ -34,12 +34,28 @@ esm_router = APIRouter()
 
 @esm_router.post("/extract_tracks")
 def extract_tracks(
-        fieldnames: Union[str, List[str]],
         transform: DatasetTransform,
         tracks: TrackCollection,
+        fieldnames: Optional[Union[str, List[str]]] = None,
         dataset: xr.Dataset = Depends(get_dataset),
 ) -> TrackCollection:
-    """Extract data (one or multiple fields) along given ship tracks."""
+    """Extract data along given ship tracks.
+
+    The ship tracks must be given in the GeoJSON format (i.e., a
+    FeatureCollection of LineString or MultiLineString geometries).
+
+    Some transformation can be applied on the dataset first, e.g., take
+    time-averaged values.
+
+    By default extracts data for all fields (data variables) in dataset.
+    One or more specific fieldnames could be specified otherwise.
+
+    Returns GeoJSON formatted "model" tracks (coordinates coorespond to model
+    points) with extracted values as feature properties.
+
+    """
+    if fieldnames is None:
+        fieldnames = list(dataset.data_vars)
 
     if transform.aggregation == "mean":
         dataset = dataset.mean(dim=transform.dim)
