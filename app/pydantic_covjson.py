@@ -4,21 +4,22 @@ from typing import Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
 
-class I18NText(BaseModel):
-    """Multi-language text."""
+class CovJSONModel(BaseModel):
 
-    __root__: Dict[str, str]
-
-    # TODO: validate language keys?
+    class Config:
+        allow_population_by_field_name = True
 
 
-class Category(BaseModel):
+I18NText = Dict[str, str]
+
+
+class Category(CovJSONModel):
     id: str
     label: I18NText
     description: Optional[I18NText] = None
 
 
-class CategoryEncoding(BaseModel):
+class CategoryEncoding(CovJSONModel):
     """Map category id to data value."""
 
     __root__: Dict[str, Union[int, List[int]]]
@@ -26,19 +27,19 @@ class CategoryEncoding(BaseModel):
     # TODO: validate each encoding value mapped to only one category id
 
 
-class ObservedProperty(BaseModel):
+class ObservedProperty(CovJSONModel):
     id: Optional[str] = None
     label: I18NText
     description: Optional[I18NText] = None
     categories: Optional[List[Category]] = None
 
 
-class Symbol(BaseModel):
+class Symbol(CovJSONModel):
     type: str = Field("http://www.opengis.net/def/uom/UCUM/", const=True)
     value: str
 
 
-class Unit(BaseModel):
+class Unit(CovJSONModel):
     id: Optional[str] = None
     label: Optional[I18NText] = None
     symbol: Optional[Union[str, Symbol]] = None
@@ -46,19 +47,19 @@ class Unit(BaseModel):
     # TODO: validate at least label or symbol defined
 
 
-class Parameter(BaseModel):
+class Parameter(CovJSONModel):
     type: str = Field("Parameter", const=True)
     id: Optional[str] = None
     label: Optional[I18NText] = None
     description: Optional[I18NText] = None
-    observed_property: ObservedProperty = Field(..., alias="observedProperty")
-    category_encoding: Optional[CategoryEncoding] = None
+    observed_property: ObservedProperty = Field(alias="observedProperty")
+    category_encoding: Optional[CategoryEncoding] = Field(None, alias="categoryEncoding")
     unit: Optional[Unit] = None
 
     # TODO: validate unit must be None if observed_property.categories is not None
 
 
-class ReferenceSystem(BaseModel):
+class ReferenceSystem(CovJSONModel):
     type: str
     id: Optional[str] = None
 
@@ -80,7 +81,7 @@ class TemporalRS(ReferenceSystem):
     calendar: str = "Gregorian"
 
 
-class Reference(BaseModel):
+class Reference(CovJSONModel):
     coordinates: List[str]
     system: ReferenceSystem
 
@@ -110,9 +111,9 @@ class AxisDataType(str, Enum):
     POLYGON = "polygon"
 
 
-NumType = Union[int, float]
+NumType = Union[float, int]
 # str is for date/time values
-StrNumType = Union[str, NumType]
+StrNumType = Union[NumType, str]
 
 PrimitiveValuesType = List[StrNumType]
 TupleValuesType = List[List[StrNumType]]
@@ -121,7 +122,7 @@ PolygonValuesType = List[List[List[NumType]]]
 AxisValuesType = Union[PrimitiveValuesType, TupleValuesType, PolygonValuesType]
 
 
-class Axis(BaseModel):
+class Axis(CovJSONModel):
     values: Optional[AxisValuesType] = Field(None, min_items=1)
     bounds: Optional[PrimitiveValuesType] = Field(None, min_items=2)
     start: Optional[NumType] = None
@@ -135,22 +136,34 @@ class Axis(BaseModel):
     # TODO: validate values nested list level depending on datatype
 
 
-class DomainType(str, Enum):
-    GRID = "Grid"
-    VERTICAL_PROFILE = "VerticalProfile"
-    TRAJECTORY = "Trajectory"
-
-    # TODO: add more domain types https://covjson.org/domain-types/
-
-
-class Domain(BaseModel):
+class Domain(CovJSONModel):
     type: str = Field("Domain", const=True)
-    domain_type: Optional[DomainType] = Field(None, alias="domainType")
+    domain_type: Optional[str] = Field(None, alias="domainType")
     axes: Dict[str, Axis]
-    referencing: Reference
+    referencing: List[Reference]
 
     # TODO: make referencing optional
     # TODO: validate referencing must be set if not part of or not defined in coverage collection
+
+
+class GridDomain(Domain):
+    domain_type: str = Field("Grid", alias="domainType")
+
+    # TODO: validate must have "x" and "y" axes
+
+
+class PointSeriesDomain(Domain):
+    domain_type: str = Field("PointSeries", alias="domainType")
+
+    # TODO: validate must have "x", "y" and "t" axes
+    # TODO: validate len(x) and len(y) == 1
+
+
+class TrajectoryDomain(Domain):
+    domain_type: str = Field("Trajectory", alias="domainType")
+
+    # TODO: validate must have a "composite" axis
+    # TODO: validate "composite" axis must have
 
 
 class NdArrayDataType(str, Enum):
@@ -159,18 +172,18 @@ class NdArrayDataType(str, Enum):
     STRING = "string"
 
 
-class NdArray(BaseModel):
+class NdArray(CovJSONModel):
     type: str = Field("NdArray", const=True)
     datatype: NdArrayDataType = Field(..., alias="dataType")
     shape: List[int] = Field(default_factory=list)
-    axis_names: List[str] = Field(default_factory=list, alias="axisNames")
+    axis_names: Optional[List[str]] = Field(None, alias="axisNames")
     values: List[Union[None, StrNumType]]
 
     # TODO: validate len(shape) == len(axis_names)
     # TODO: validate product(shape) == len(values)
 
 
-class Coverage(BaseModel):
+class Coverage(CovJSONModel):
     type: str = Field("Coverage", const=True)
     id: Optional[str] = None
     domain: Union[str, Domain]
