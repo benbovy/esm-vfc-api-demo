@@ -6,8 +6,10 @@
 #
 # $ uvicorn app.main:app --reload
 #
+import datetime
 from typing import List, Optional, Tuple, Union
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 from fastapi import APIRouter, Depends
@@ -20,6 +22,7 @@ from .pydantic_covjson import (
     Axis,
     Coverage,
     GridDomain,
+    MultiPointDomain,
     NdArray,
     NdArrayDataType,
     ObservedProperty,
@@ -183,7 +186,7 @@ class Trajectory(BaseModel):
 
 
 @covjson_router.post(
-    "/trajectory/",
+    "/trajectory",
     response_model=Coverage,
     response_model_exclude_none=True
 )
@@ -194,8 +197,6 @@ def extract_trajectory(
     """Extract model data (nearest points) along a given trajectory. """
 
     time, lat, lon = zip(*trajectory.points)
-    print(lat)
-    print(time)
 
     da_lat = xr.DataArray(list(lat), dims="trajectory")
     da_lon = xr.DataArray(list(lon), dims="trajectory")
@@ -215,6 +216,63 @@ def extract_trajectory(
     }
 
     domain = TrajectoryDomain(
+        axes=axes,
+        referencing=[SpatialReference2D(), TemporalReference()]
+    )
+
+    parameters, ranges = _get_covjson_params_ranges(ds, include_axis_names=False)
+
+    return Coverage(domain=domain, parameters=parameters, ranges=ranges)
+
+
+class Points(BaseModel):
+    date: datetime.datetime
+    values: List[Tuple[float, float]] = Field(..., description="(lat, lon) points")
+    id: Optional[str] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "date": datetime.datetime(2014, 8, 8, 17, 45),
+                "values": np.dstack(
+                    [np.random.uniform(20, 70, 50), np.random.uniform(200, 330, 50)]
+                )[0].tolist()
+            }
+        }
+
+
+@covjson_router.post(
+    "/points",
+    response_model=Coverage,
+    response_model_exclude_none=True
+)
+def extract_points(
+        points: Points,
+        dataset: xr.Dataset = Depends(get_dataset)
+):
+    """Extract model data (nearest points) at given lat/lon points at a given
+    time.
+
+    """
+    lat, lon = zip(*points.values)
+    da_lat = xr.DataArray(list(lat), dims="points")
+    da_lon = xr.DataArray(list(lon), dims="points")
+
+    ds = dataset.sel(lat=da_lat, lon=da_lon, time=points.date, method="nearest")
+
+    new_lat = ds.lat.values.tolist()
+    new_lon = ds.lon.values.tolist()
+    new_time = ds.time.astype(str).values.item()
+
+    axes = {
+        "t": Axis(values=[new_time]),
+        "composite": Axis(
+            coordinates=["x", "y"],
+            values=list(zip(new_lon, new_lat))
+        )
+    }
+
+    domain = MultiPointDomain(
         axes=axes,
         referencing=[SpatialReference2D(), TemporalReference()]
     )

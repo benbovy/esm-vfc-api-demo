@@ -159,11 +159,18 @@ class PointSeriesDomain(Domain):
     # TODO: validate len(x) and len(y) == 1
 
 
+class MultiPointDomain(Domain):
+    domain_type: str = Field("MultiPoint", alias="domainType")
+
+    # TODO: validate must have a "composite" axis
+    # TODO: validate "composite" axis must have tuple "x", "y", ("z")
+
+
 class TrajectoryDomain(Domain):
     domain_type: str = Field("Trajectory", alias="domainType")
 
     # TODO: validate must have a "composite" axis
-    # TODO: validate "composite" axis must have
+    # TODO: validate "composite" axis must have tuple "t", "x", "y", ("z")
 
 
 class NdArrayDataType(str, Enum):
