@@ -290,7 +290,7 @@ demo_dataset.rest(
         (extend_base_router, {'tags': ['info']}),
         (zarr_router, {'tags': ['zarr'], 'prefix': '/zarr'}),
         (esm_router, {'tags': ['esm'], 'prefix': '/esm'}),
-        (covjson_router, {'tags': ['covjson'], 'prefix': '/covjson'})
+        (covjson_router, {'tags': ['covjson (experimental)'], 'prefix': '/covjson'})
     ]
 )
 
