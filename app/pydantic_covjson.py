@@ -147,27 +147,27 @@ class Domain(CovJSONModel):
 
 
 class GridDomain(Domain):
-    domain_type: str = Field("Grid", alias="domainType")
+    domain_type: str = Field("Grid", const=True, alias="domainType")
 
     # TODO: validate must have "x" and "y" axes
 
 
 class PointSeriesDomain(Domain):
-    domain_type: str = Field("PointSeries", alias="domainType")
+    domain_type: str = Field("PointSeries", const=True, alias="domainType")
 
     # TODO: validate must have "x", "y" and "t" axes
     # TODO: validate len(x) and len(y) == 1
 
 
 class MultiPointDomain(Domain):
-    domain_type: str = Field("MultiPoint", alias="domainType")
+    domain_type: str = Field("MultiPoint", const=True, alias="domainType")
 
     # TODO: validate must have a "composite" axis
     # TODO: validate "composite" axis must have tuple "x", "y", ("z")
 
 
 class TrajectoryDomain(Domain):
-    domain_type: str = Field("Trajectory", alias="domainType")
+    domain_type: str = Field("Trajectory", const=True, alias="domainType")
 
     # TODO: validate must have a "composite" axis
     # TODO: validate "composite" axis must have tuple "t", "x", "y", ("z")
